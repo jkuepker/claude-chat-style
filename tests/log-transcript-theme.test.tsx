@@ -96,6 +96,10 @@ describe('helpers', () => {
     expect(outputSummary({ numFiles: 3 })).toBe('3 files');
     expect(outputSummary({ numFiles: 1 })).toBe('1 file');
     expect(outputSummary(undefined)).toBe('');
+    expect(outputSummary({ numLines: 17 })).toBe('17 lines');
+    expect(outputSummary('179', 'Read')).toBe('179 lines');
+    expect(outputSummary(1, 'Read')).toBe('1 line');
+    expect(outputSummary('179', 'Bash')).toBe('179');
   });
 
   test('outputText reads shell output, file content or a plain string', () => {
@@ -248,6 +252,9 @@ for (const surface of ['terminal', 'desktop'] as const) {
       const lines = walk(tree).filter((element) => element.type === 'Text').map(allText);
       expect(lines).toContain('Bash ls → types');
       expect(lines).toContain('Bash git log --oneline -3 → abc first');
+      const reads = group([call({ tool: 'Read', input: { file_path: '/r.md' }, output: '179' })]);
+      const readTree = await $.ui.render({ surface, component: 'ToolGroup', requestId: 'g4', viewport, props: reads as never });
+      expect(walk(readTree).filter((element) => element.type === 'Text').map(allText)).toContain('Read /r.md → 179 lines');
       expect(texts(tree)[0]).toMatchObject({ text: 'TOOL', color: DEFAULTS.toolColor });
       expect(walk(tree).filter((element) => element.type === 'engine')).toHaveLength(0);
     });

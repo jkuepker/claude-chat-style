@@ -121,7 +121,7 @@ export function outputText(output: unknown): string {
 }
 
 /** What a tool call came to, in one line: lines added and removed, lines read, files found, or its output's last line. */
-export function outputSummary(output: unknown): string {
+export function outputSummary(output: unknown, tool?: string): string {
   if (output === undefined) return '';
   const fields = record(output);
   const patch = fields['structuredPatch'];
@@ -139,11 +139,14 @@ export function outputSummary(output: unknown): string {
     }
     return `+${added} −${removed}`;
   }
-  const lines = record(fields['file'])['numLines'];
+  const lines = record(fields['file'])['numLines'] ?? fields['numLines'];
   if (typeof lines === 'number') return `${lines} lines`;
   const files = fields['numFiles'] ?? (Array.isArray(fields['filenames']) ? fields['filenames'].length : undefined);
   if (typeof files === 'number') return `${files} ${files === 1 ? 'file' : 'files'}`;
-  return lastLine(outputText(output));
+  const last = typeof output === 'number' ? String(output) : lastLine(outputText(output));
+  // A read can arrive as a bare count of lines (a call inside a group does).
+  if (tool === 'Read' && /^\d+$/.test(last)) return `${last} ${last === '1' ? 'line' : 'lines'}`;
+  return last;
 }
 
 /** Pretty JSON of a value, or the value itself when it is text. */
@@ -179,7 +182,7 @@ export function toolDetail(tool: string, input: unknown, output: unknown, status
           ['Tool', tool],
           ['Status', status],
           ['Input', inputSummary(input)],
-          ['Result', outputSummary(output) || '—'],
+          ['Result', outputSummary(output, tool) || '—'],
           ...(took ? [['Duration', took] as [string, string]] : []),
         ],
       },
@@ -431,7 +434,7 @@ export const register: Register = (on, options) => {
     if (isRunning || isErrored || isInterrupted) {
       return row($, ui, e.requestId, 'TOOL', isRunning ? style.toolColor : ERROR_COLOR, open, await next(e));
     }
-    const result = outputSummary(output);
+    const result = outputSummary(output, tool);
     return row(
       $,
       ui,
@@ -471,8 +474,9 @@ export const register: Register = (on, options) => {
             role: 'TOOL',
             title: `${calls.length} calls`,
             views: [
-              { name: 'Summary', fields: calls.map((call): [string, string] => [call.tool, `${inputSummary(call.input)} → ${outputSummary(call.output) || status(call)}`]) },
+              { name: 'Summary', fields: calls.map((call): [string, string] => [call.tool, `${inputSummary(call.input)} → ${outputSummary(call.output, call.tool) || status(call)}`]) },
               { name: 'Payload', code: pretty(calls.map((call) => ({ tool: call.tool, input: call.input }))), language: 'json' },
+              { name: 'Result', code: pretty(calls.map((call) => ({ tool: call.tool, output: call.output ?? null }))), language: 'json' },
             ],
           };
     const failed = calls.some((call) => call.isErrored || call.isInterrupted);
@@ -487,7 +491,7 @@ export const register: Register = (on, options) => {
       open,
       calls.map((call, i) => {
         const bad = call.isErrored || call.isInterrupted;
-        const result = bad ? status(call) : outputSummary(call.output);
+        const result = bad ? status(call) : outputSummary(call.output, call.tool);
         return (
           <ui.Text key={String(i)} wrap="truncate-end">
             {`${call.tool} ${inputSummary(call.input)}`}
