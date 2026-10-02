@@ -14,14 +14,21 @@
 # Only `ls`, `git log` and `npm run` may run without asking. Disable an
 # installed copy of the plugin first, or both copies draw the rows.
 #
-# DEMO_MODEL (default haiku), GIF_WIDTH (960), GIF_FPS (15), GIF_COLORS (256)
-# and GIF_KEEP_WORK=1 (keep the raw recording) tune it.
+# DEMO_MODEL (default haiku), DEMO_COLS and DEMO_ROWS (the window, 108 x 30),
+# DEMO_CLICK_SECONDS (0), GIF_WIDTH (960), GIF_FPS (15), GIF_COLORS (256) and
+# GIF_KEEP_WORK=1 (keep the raw recording) tune it. DEMO_CLICK_SECONDS keeps
+# recording that long after the last reply, for a person to click a row's
+# details › and the pane's tabs; at 110 columns or more the pane docks beside
+# the transcript, below that it opens above the prompt.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
 out=${1:-$repo/docs/demo.gif}
 workdir=${2:-$PWD}
 model=${DEMO_MODEL:-haiku}
+cols=${DEMO_COLS:-108}
+rows=${DEMO_ROWS:-30}
+click_seconds=${DEMO_CLICK_SECONDS:-0}
 width=${GIF_WIDTH:-960}
 fps=${GIF_FPS:-15}
 colors=${GIF_COLORS:-256}
@@ -42,6 +49,7 @@ set -as terminal-overrides ",*:RGB"
 set -g focus-events on
 set -g status off
 set -g escape-time 0
+set -g mouse on
 CONF
 tmux_() { tmux -L "$session" -f "$work/tmux.conf" "$@"; }
 
@@ -69,14 +77,14 @@ tmux_ kill-server 2>/dev/null || true
 # terminal's and not like one nested in the shell that runs this script.
 env -i HOME="$HOME" USER="$USER" LOGNAME="${LOGNAME:-$USER}" PATH="$PATH" SHELL="${SHELL:-/bin/zsh}" \
   LANG="${LANG:-en_US.UTF-8}" TMPDIR="$(getconf DARWIN_USER_TEMP_DIR)" \
-  tmux -L "$session" -f "$work/tmux.conf" new-session -d -s "$session" -x 108 -y 30 \
+  tmux -L "$session" -f "$work/tmux.conf" new-session -d -s "$session" -x "$cols" -y "$rows" \
   "cd '$workdir' && env -u TMUX -u TMUX_PANE TERM=xterm-256color COLORTERM=truecolor claude --plugin-dir '$repo' --model '$model' --allowedTools 'Bash(ls:*)' 'Bash(git log:*)' 'Bash(npm run:*)'"
 wait_for '❯' 30
 
 # A Ghostty window of its own, attached to the session, in Ultra Atom One
 # Dark's background and text colours, the theme the labels come from.
 before=$(pgrep -x ghostty | sort)
-open -na Ghostty.app --args --window-width=108 --window-height=30 --font-size=14 \
+open -na Ghostty.app --args --window-width=$cols --window-height=$rows --font-size=14 \
   --background=191d25 --foreground=ccd3e0 --cursor-style=block \
   --confirm-close-surface=false --quit-after-last-window-closed=true \
   --window-save-state=never --title=claude \
@@ -111,6 +119,10 @@ for prompt in "${prompts[@]}"; do
   sleep 1.5
 done
 sleep 2.5
+if ((click_seconds > 0)); then
+  echo "recording $click_seconds s more: click a row's details › now" >&2
+  sleep "$click_seconds"
+fi
 end=$(python3 -c 'import time; print(time.time())')
 
 kill -INT "$capture_pid" 2>/dev/null || true

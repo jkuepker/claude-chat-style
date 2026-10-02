@@ -153,11 +153,14 @@ MIT (see `LICENSE`): use, change and share it, including as your own style.
 
 ```sh
 claude plugin disable log-transcript-theme@log-transcript-theme   # if installed
-demo/record-gif.sh docs/demo.gif /path/to/a/trusted/git/repository
+DEMO_COLS=150 DEMO_ROWS=32 DEMO_CLICK_SECONDS=20 GIF_WIDTH=1280 \
+  demo/record-gif.sh docs/demo.gif /path/to/a/trusted/git/repository
 claude plugin enable log-transcript-theme@log-transcript-theme
 ```
 
 An installed copy would draw every row a second time, hence the disable.
+The last 20 seconds are for a person to click a row's `details ›` and the
+pane's tabs; at 150 columns the pane docks beside the transcript.
 
 It runs `claude --plugin-dir .` in a private tmux server, shows it in a new
 Ghostty window, types three prompts (two shell commands, a failing one and a question back,
