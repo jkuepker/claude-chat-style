@@ -203,9 +203,34 @@ export function toolDetail(tool: string, input: unknown, output: unknown, status
   };
 }
 
-/** The detail a prompt or reply row opens: Summary, Preview (rendered) and Raw (the source). */
-export function textDetail(role: string, title: string, text: string): Detail {
+/** A MIME type as people name the format: `image/png` → `PNG`, `image/svg+xml` → `SVG`. */
+export function formatName(mediaType: string | undefined): string | undefined {
+  const sub = mediaType?.split('/')[1]?.split(/[+;]/)[0]?.trim();
+  return sub ? sub.toUpperCase() : undefined;
+}
+
+/**
+ * The line an attachment draws under its prompt: its kind and place, then its
+ * file name, or for a paste (which has none) its format: `image 2 · PNG`.
+ */
+export function attachmentLabel(attachment: PromptSubmitAttachment, n: number): string {
+  const detail = attachment.filename ?? formatName(attachment.mediaType);
+  return detail ? `${attachment.type} ${n} · ${detail}` : `${attachment.type} ${n}`;
+}
+
+/** A prompt's attachments in a few words: `3 images (PNG)`, `1 image, 1 document (PNG, PDF)`. */
+export function attachmentsSummary(attachments: readonly PromptSubmitAttachment[]): string {
+  const counts = new Map<string, number>();
+  for (const one of attachments) counts.set(one.type, (counts.get(one.type) ?? 0) + 1);
+  const kinds = [...counts].map(([type, n]) => `${n} ${type}${n === 1 ? '' : 's'}`).join(', ');
+  const formats = [...new Set(attachments.map((one) => formatName(one.mediaType)).filter(Boolean))];
+  return formats.length ? `${kinds} (${formats.join(', ')})` : kinds;
+}
+
+/** The detail a prompt or reply row opens: Summary, Preview (rendered) and Raw (the source), with a prompt's attachments. */
+export function textDetail(role: string, title: string, text: string, attachments: readonly PromptSubmitAttachment[] = []): Detail {
   const words = text.split(/\s+/).filter(Boolean).length;
+  const listed = attachments.map((one, i) => `${i + 1}. ${attachmentLabel(one, i + 1)}${one.mediaType ? ` (${one.mediaType})` : ''}`).join('\n');
   return {
     role,
     title,
@@ -216,10 +241,11 @@ export function textDetail(role: string, title: string, text: string): Detail {
           ['Words', String(words)],
           ['Lines', String(text.split('\n').length)],
           ['Characters', String([...text].length)],
+          ...(attachments.length ? [['Attachments', attachmentsSummary(attachments)] as [string, string]] : []),
         ],
       },
       { name: 'Preview', markdown: text, empty: '(empty)' },
-      { name: 'Raw', text, empty: '(empty)' },
+      { name: 'Raw', text: listed ? `${text}\n\nattachments:\n${listed}` : text, empty: '(empty)' },
     ],
   };
 }
@@ -230,10 +256,6 @@ const TYPED_ORIGINS = new Set(['composer', 'sdk', 'bridge']);
 /** Prompts remembered with their attachments; the oldest drop out past this. */
 const REMEMBERED_PROMPTS = 50;
 
-/** The line an attachment draws under its prompt: its kind, and its file name when it had one. */
-export function attachmentLabel(attachment: PromptSubmitAttachment): string {
-  return attachment.filename ? `${attachment.type} · ${attachment.filename}` : attachment.type;
-}
 
 /** The tool that asks the person a multiple-choice question. */
 const ASK_TOOL = 'AskUserQuestion';
@@ -370,10 +392,11 @@ export const register: Register = (on, options) => {
     if (!TYPED_ORIGINS.has(e.props.origin.kind)) return next(e);
     const ui = $.ui.resolve(e);
     const { text } = e.props;
-    const chips = (attachments.get(text) ?? []).map((attachment, i) => (
-      <ui.Text key={String(i)} color={style.youColor}>{`▣ ${attachmentLabel(attachment)}`}</ui.Text>
+    const attached = attachments.get(text) ?? [];
+    const chips = attached.map((attachment, i) => (
+      <ui.Text key={String(i)} color={style.youColor}>{`▣ ${attachmentLabel(attachment, i + 1)}`}</ui.Text>
     ));
-    return row($, ui, e.requestId, 'YOU', style.youColor, () => textDetail('YOU', 'prompt', text), text ? [<ui.Text>{text}</ui.Text>, ...chips] : chips);
+    return row($, ui, e.requestId, 'YOU', style.youColor, () => textDetail('YOU', 'prompt', text, attached), text ? [<ui.Text>{text}</ui.Text>, ...chips] : chips);
   });
 
   // The live question dialog: CLAUDE ? on a line of its own above the engine's

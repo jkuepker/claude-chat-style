@@ -12,6 +12,7 @@ label opens that row's details in a pane docked beside the transcript.
 | Row | Drawn as |
 |---|---|
 | Your prompt | **YOU** (blue), then the text |
+| Your prompt with attachments | the same, then a line per attachment: `▣ image 1 · header.png`, or for a paste, which has no file name, `▣ image 2 · PNG` |
 | Claude's reply | **CLAUDE** (magenta), then the markdown as usual |
 | Claude's question | **CLAUDE ?** (yellow): the reply's last paragraph outside code ends with `?` |
 | A multiple-choice question (AskUserQuestion) | **CLAUDE ?** over Claude Code's own dialog, and over its answered card |
@@ -22,8 +23,9 @@ label opens that row's details in a pane docked beside the transcript.
 Click the `›` beside any label to open the **Details** pane. A tool call has
 **Summary** (tool, status, input, result, duration), **Payload** (its input as
 JSON), **Result** (its output) and **Timing** (step, start, finish,
-duration). A prompt or reply has **Summary** (its length), **Preview** (the
-text rendered) and **Raw** (the source). The colours are Ultra Atom One
+duration). A prompt or reply has **Summary** (its length, and a prompt's
+attachments), **Preview** (the text rendered) and **Raw** (the source, with
+the attachments listed). The colours are Ultra Atom One
 Dark's.
 
 Only prompts you type get the YOU label; task notifications, teammates and

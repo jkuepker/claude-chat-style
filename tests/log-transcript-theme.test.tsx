@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing';
 
-import { attachmentLabel, chatStyle, DEFAULTS, duration, firstLine, holdsEngine, inputSummary, lastLine, isQuestion, outputSummary, outputText, PANE, questionText, textDetail, toolDetail } from '../hooks/log-transcript-theme.tsx';
+import { attachmentLabel, attachmentsSummary, chatStyle, DEFAULTS, duration, firstLine, formatName, holdsEngine, inputSummary, lastLine, isQuestion, outputSummary, outputText, PANE, questionText, textDetail, toolDetail } from '../hooks/log-transcript-theme.tsx';
 
 type Node = { type?: string; props?: Record<string, unknown>; children?: unknown[] };
 
@@ -112,9 +112,31 @@ describe('helpers', () => {
     expect(chatStyle({ enabled: false }).enabled).toBe(false);
   });
 
-  test('attachment labels name the kind, and the file when there is one', () => {
-    expect(attachmentLabel({ type: 'document', filename: 'spec.pdf' })).toBe('document · spec.pdf');
-    expect(attachmentLabel({ type: 'audio' })).toBe('audio');
+  test('attachment labels name the kind and place, then the file name or, for a paste, the format', () => {
+    expect(attachmentLabel({ type: 'document', filename: 'spec.pdf', mediaType: 'application/pdf' }, 1)).toBe('document 1 · spec.pdf');
+    expect(attachmentLabel({ type: 'image', mediaType: 'image/png' }, 2)).toBe('image 2 · PNG');
+    expect(attachmentLabel({ type: 'audio' }, 3)).toBe('audio 3');
+  });
+
+  test('formats read as people name them', () => {
+    expect(formatName('image/png')).toBe('PNG');
+    expect(formatName('image/svg+xml')).toBe('SVG');
+    expect(formatName('image/jpeg; q=1')).toBe('JPEG');
+    expect(formatName(undefined)).toBeUndefined();
+  });
+
+  test('a prompt\'s attachments sum up by kind and format', () => {
+    const png = { type: 'image' as const, mediaType: 'image/png' };
+    expect(attachmentsSummary([png, png, png])).toBe('3 images (PNG)');
+    expect(attachmentsSummary([png, { type: 'document', mediaType: 'application/pdf' }])).toBe('1 image, 1 document (PNG, PDF)');
+    expect(attachmentsSummary([{ type: 'image' }])).toBe('1 image');
+  });
+
+  test('a prompt\'s detail lists its attachments in Summary and Raw', () => {
+    const shown = textDetail('YOU', 'prompt', 'Testing images', [{ type: 'image', mediaType: 'image/png' }, { type: 'image', mediaType: 'image/png' }]);
+    expect(shown.views[0]?.fields).toContainEqual(['Attachments', '2 images (PNG)']);
+    expect(shown.views[2]?.text).toBe('Testing images\n\nattachments:\n1. image 1 · PNG (image/png)\n2. image 2 · PNG (image/png)');
+    expect(textDetail('YOU', 'prompt', 'plain').views[0]?.fields?.map(([name]) => name)).not.toContain('Attachments');
   });
 
   test('durations read as people say them', () => {
@@ -350,13 +372,13 @@ describe('prompts with attachments', () => {
     on('prompt.submit', (_, e) => ({ text: e.text }));
     await $.prompt.submit({ origin: { kind: 'sdk' }, wait: false, text: 'Make the header sticky', attachments: [{ type: 'image', mediaType: 'image/png', filename: 'header.png' }] });
     const tree = await $.ui.render({ surface: 'desktop', component: 'UserMessage', requestId: 'a1', props: { text: 'Make the header sticky', origin: { kind: 'sdk' }, isExpanded: false } });
-    expect(texts(tree).map((t) => t.text)).toEqual(['YOU', 'Make the header sticky', '▣ image · header.png']);
+    expect(texts(tree).map((t) => t.text)).toEqual(['YOU', 'Make the header sticky', '▣ image 1 · header.png']);
   });
 
   test('a prompt that was only an image still shows the chip', async ($, on) => {
     on('prompt.submit', (_, e) => ({ text: e.text }));
-    await $.prompt.submit({ origin: { kind: 'composer' }, wait: false, text: '', attachments: [{ type: 'image' }] });
+    await $.prompt.submit({ origin: { kind: 'composer' }, wait: false, text: '', attachments: [{ type: 'image', mediaType: 'image/png' }, { type: 'image', mediaType: 'image/jpeg' }] });
     const tree = await $.ui.render({ surface: 'terminal', component: 'UserMessage', requestId: 'a2', viewport, props: { text: '', origin: { kind: 'composer' }, isExpanded: false } });
-    expect(texts(tree).map((t) => t.text)).toEqual(['YOU', '▣ image']);
+    expect(texts(tree).map((t) => t.text)).toEqual(['YOU', '▣ image 1 · PNG', '▣ image 2 · JPEG']);
   });
 });
