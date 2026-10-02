@@ -32,8 +32,6 @@ export const DEFAULTS: ChatStyle = {
 const ERROR_COLOR = '#FF5E92';
 /** Grey of a tool row's result and other secondary text. */
 const DIM_COLOR = '#828996';
-/** Background of a row under the pointer. */
-const HOVER_BACKGROUND = '#262C38';
 
 /** Cells the label column takes: the widest label, `CLAUDE ?`, and a space. */
 const LABEL_WIDTH = 9;
@@ -318,9 +316,10 @@ function row(
 ) {
   const { Box, Text } = ui;
   return (
-    <Box key={`row-${requestId}`} flexDirection="row" alignItems="flex-start" hover={{ backgroundColor: HOVER_BACKGROUND }}>
+    <Box key={`row-${requestId}`} flexDirection="row" alignItems="flex-start">
       <Box width={LABEL_WIDTH} flexShrink={0}>
-        <Text color={color} bold>{label}</Text>
+        {/* No background on hover: it would hide the selection's highlight. */}
+        <Text color={color} bold hover={{ underline: true }}>{label}</Text>
       </Box>
       <Box width={OPENER_WIDTH} flexShrink={0}>
         {opener($, ui, requestId, open)}

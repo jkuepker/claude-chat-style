@@ -216,6 +216,10 @@ for (const surface of ['terminal', 'desktop'] as const) {
       const lines = walk(tree).filter((element) => element.type === 'Text').map(allText);
       expect(lines).toContain('Bash npm test → 14 passed');
       expect(walk(tree).some((element) => element.props?.['position'] === 'absolute')).toBe(false);
+      // The pointer underlines the label and paints no background, which would hide a selection.
+      const hovers = walk(tree).map((element) => ((element as { hover?: unknown }).hover ?? element.props?.['hover']) as { backgroundColor?: string; underline?: boolean } | undefined);
+      expect(hovers.some((hover) => hover?.backgroundColor)).toBe(false);
+      expect(hovers.some((hover) => hover?.underline === true)).toBe(true);
     });
 
     test('keep the engine\'s row under the label while running', async ($, on) => {
