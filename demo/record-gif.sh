@@ -14,7 +14,7 @@
 # Only `ls`, `git log` and `npm run` may run without asking. Disable an
 # installed copy of the plugin first, or both copies draw the rows.
 #
-# DEMO_MODEL (default haiku), GIF_WIDTH (960), GIF_FPS (15), GIF_COLORS (128)
+# DEMO_MODEL (default haiku), GIF_WIDTH (960), GIF_FPS (15), GIF_COLORS (256)
 # and GIF_KEEP_WORK=1 (keep the raw recording) tune it.
 set -euo pipefail
 
@@ -24,7 +24,7 @@ workdir=${2:-$PWD}
 model=${DEMO_MODEL:-haiku}
 width=${GIF_WIDTH:-960}
 fps=${GIF_FPS:-15}
-colors=${GIF_COLORS:-128}
+colors=${GIF_COLORS:-256}
 session=log-theme-demo
 work=$(mktemp -d "${TMPDIR:-/tmp}/log-theme-gif.XXXXXX")
 [[ "${GIF_KEEP_WORK:-}" == 1 ]] && echo "work dir: $work" || trap 'rm -rf "$work"' EXIT
@@ -73,10 +73,11 @@ env -i HOME="$HOME" USER="$USER" LOGNAME="${LOGNAME:-$USER}" PATH="$PATH" SHELL=
   "cd '$workdir' && env -u TMUX -u TMUX_PANE TERM=xterm-256color COLORTERM=truecolor claude --plugin-dir '$repo' --model '$model' --allowedTools 'Bash(ls:*)' 'Bash(git log:*)' 'Bash(npm run:*)'"
 wait_for '❯' 30
 
-# A Ghostty window of its own, attached to the session, in the demo's colours.
+# A Ghostty window of its own, attached to the session, in Ultra Atom One
+# Dark's background and text colours, the theme the labels come from.
 before=$(pgrep -x ghostty | sort)
 open -na Ghostty.app --args --window-width=108 --window-height=30 --font-size=14 \
-  --background=0d1016 --foreground=d4d5d9 --cursor-style=block \
+  --background=191d25 --foreground=ccd3e0 --cursor-style=block \
   --confirm-close-surface=false --quit-after-last-window-closed=true \
   --window-save-state=never --title=claude \
   --command="$(command -v tmux) -L $session attach -t $session"
@@ -125,10 +126,23 @@ gh=$(( (h * width / w) / 2 * 2 ))
 # The capture is the window alone: its rounded corners are transparent, laid
 # here on the terminal background. Frames come only when the window changes;
 # fps fills the gaps.
+#
+# A label's exact colour covers few pixels next to the antialiased shades
+# around it, so a palette built from the frames alone merges it into those
+# shades and the labels come out washed out. Swatches of the plugin's colours
+# (YOU, CLAUDE, CLAUDE ?, TOOL, a failed TOOL), painted only into the copy
+# the palette is built from, put each one in the palette exactly; no
+# dithering keeps the letters crisp.
+swatches=""
+x=0
+for c in 4280FE DE77FF FEDC71 FF995A FF5E92; do
+  swatches+="drawbox=x=$x:y=0:w=60:h=60:c=0x$c:t=fill,"
+  x=$((x + 60))
+done
 mkdir -p "$(dirname "$out")"
 ffmpeg -hide_banner -loglevel error -y -ss "$ss" -t "$dur" -i "$work/rec.mov" -filter_complex "\
-color=c=0x0d1016:s=${w}x${h}[bg];[bg][0:v]overlay=shortest=1,fps=$fps,scale=${width}:${gh}:flags=lanczos,format=rgb24,split[a][b];\
-[a]palettegen=max_colors=$colors:stats_mode=full:reserve_transparent=0[p];\
-[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" \
+color=c=0x191d25:s=${w}x${h}[bg];[bg][0:v]overlay=shortest=1,fps=$fps,scale=${width}:${gh}:flags=lanczos,format=rgb24,split[a][b];\
+[a]${swatches}palettegen=max_colors=$colors:stats_mode=full:reserve_transparent=0[p];\
+[b][p]paletteuse=dither=none:diff_mode=rectangle" \
   -loop 0 "$out"
 echo "wrote $out ($(du -h "$out" | cut -f1 | tr -d ' '), ${dur}s, ${width}x${gh}, ${fps} fps)"
