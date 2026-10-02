@@ -147,10 +147,15 @@ export function outputSummary(output: unknown, tool?: string): string {
   if (typeof lines === 'number') return `${lines} lines`;
   const files = fields['numFiles'] ?? (Array.isArray(fields['filenames']) ? fields['filenames'].length : undefined);
   if (typeof files === 'number') return `${files} ${files === 1 ? 'file' : 'files'}`;
-  const last = typeof output === 'number' ? String(output) : lastLine(outputText(output));
-  // A read can arrive as a bare count of lines (a call inside a group does).
-  if (tool === 'Read' && /^\d+$/.test(last)) return `${last} ${last === '1' ? 'line' : 'lines'}`;
-  return last;
+  const text = typeof output === 'number' ? String(output) : outputText(output);
+  // Inside a group a read arrives as its text with a number before each line
+  // (`17\t}`): the last line's number is how many lines were read.
+  if (tool === 'Read') {
+    const numbered = text.split('\n').map((line) => /^\s*(\d+)(?:\t|→|$)/.exec(line)?.[1]).filter(Boolean);
+    const count = numbered[numbered.length - 1];
+    if (count) return `${count} ${count === '1' ? 'line' : 'lines'}`;
+  }
+  return lastLine(text);
 }
 
 /** Pretty JSON of a value, or the value itself when it is text. */
@@ -480,7 +485,12 @@ export const register: Register = (on, options) => {
             views: [
               { name: 'Summary', fields: calls.map((call): [string, string] => [call.tool, `${inputSummary(call.input)} → ${outputSummary(call.output, call.tool) || status(call)}`]) },
               { name: 'Payload', code: pretty(calls.map((call) => ({ tool: call.tool, input: call.input }))), language: 'json' },
-              { name: 'Result', code: pretty(calls.map((call) => ({ tool: call.tool, output: call.output ?? null }))), language: 'json' },
+              {
+                name: 'Result',
+                text: calls
+                  .map((call) => `── ${call.tool} ${inputSummary(call.input)}\n${call.output === undefined ? '(no result yet)' : outputText(call.output) || pretty(call.output)}`)
+                  .join('\n\n'),
+              },
             ],
           };
     const failed = calls.some((call) => call.isErrored || call.isInterrupted);

@@ -102,6 +102,8 @@ describe('helpers', () => {
     expect(outputSummary('179', 'Read')).toBe('179 lines');
     expect(outputSummary(1, 'Read')).toBe('1 line');
     expect(outputSummary('179', 'Bash')).toBe('179');
+    expect(outputSummary('1\t{\n2\t  "a": 1\n17\t}', 'Read')).toBe('17 lines');
+    expect(outputSummary('1\t# Title\n2\t\n179\t', 'Read')).toBe('179 lines');
   });
 
   test('outputText reads shell output, file content or a plain string', () => {
