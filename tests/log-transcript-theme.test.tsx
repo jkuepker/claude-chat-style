@@ -91,6 +91,8 @@ describe('helpers', () => {
     expect(outputSummary({ stdout: '(pass) one test\n\n 40 pass\nRan 40 tests across 1 file.\n\n' })).toBe('Ran 40 tests across 1 file.');
     expect(lastLine('a\n  b  \n\n')).toBe('b');
     expect(lastLine('')).toBe('');
+    expect(lastLine('{\n  "content": "found 3 tools"\n}\n')).toBe('"content": "found 3 tools"');
+    expect(lastLine('}\n]')).toBe('');
     expect(outputSummary({ structuredPatch: [{ lines: [' ctx', '+a', '+b', '-c'] }] })).toBe('+2 −1');
     expect(outputSummary({ file: { numLines: 48, content: 'x' } })).toBe('48 lines');
     expect(outputSummary({ numFiles: 3 })).toBe('3 files');

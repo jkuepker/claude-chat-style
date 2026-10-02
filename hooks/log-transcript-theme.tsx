@@ -82,9 +82,13 @@ export function firstLine(text: string): string {
   return text.split('\n').map((line) => line.trim()).find(Boolean) ?? '';
 }
 
-/** The last line that is not blank, trimmed: where a command's tally usually is. */
+/**
+ * The last line that says something, trimmed: where a command's tally usually
+ * is. Lines of punctuation alone (a JSON reply's closing `}`) are passed over.
+ */
 export function lastLine(text: string): string {
-  return text.split('\n').map((line) => line.trim()).filter(Boolean).pop() ?? '';
+  const lines = text.split('\n').map((line) => line.trim()).filter(Boolean);
+  return lines.filter((line) => /[\p{L}\p{N}]/u.test(line)).pop() ?? '';
 }
 
 function record(value: unknown): Record<string, unknown> {
