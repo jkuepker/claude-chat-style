@@ -7,7 +7,7 @@ A Claude Code plugin that draws the transcript as a log: every row opens
 with a coloured role label, tool calls fold to one line, and the `details ›` button beside a
 label opens that row's details in a pane docked beside the transcript.
 
-![Claude Code in a terminal with this plugin: YOU, TOOL, CLAUDE and CLAUDE ? labels, tool calls folded to one line each, a failed call marked in red](docs/demo.gif)
+![Claude Code in a terminal with this plugin: YOU, TOOL, CLAUDE and CLAUDE ? labels, tool calls folded to one line each, a failed call marked in red, then a details › click opening a row in the side pane](docs/demo.gif)
 
 | Row | Drawn as |
 |---|---|
