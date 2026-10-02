@@ -4,7 +4,7 @@ Formerly `claude-chat-style`: Claude Code 2.1.288 reserves plugin names that
 start with `claude-`. GitHub redirects the old repository URL here.
 
 A Claude Code plugin that draws the transcript as a log: every row opens
-with a coloured role label, tool calls fold to one line, and the `›` beside a
+with a coloured role label, tool calls fold to one line, and the `details ›` button beside a
 label opens that row's details in a pane docked beside the transcript.
 
 ![Claude Code in a terminal with this plugin: YOU, TOOL, CLAUDE and CLAUDE ? labels, tool calls folded to one line each, a failed call marked in red](docs/demo.gif)
@@ -18,9 +18,9 @@ label opens that row's details in a pane docked beside the transcript.
 | A multiple-choice question (AskUserQuestion) | **CLAUDE ?** over Claude Code's own dialog, and over its answered card |
 | A finished tool call | **TOOL** (orange) and one line: `Bash npm test → 14 passed`, `Edit src/fetch.ts → +12 −3` |
 | A running or failed tool call | **TOOL** (orange, red on failure) over Claude Code's own drawing |
-| A folded group (`Ran 2 shell commands`) | **TOOL** and one line per call, `→ failed` in red for a failed one; Claude Code's own drawing while it runs or under ctrl+o |
+| A folded group (`Ran 2 shell commands`) | **TOOL** and one line per call, `→ failed` in red for a failed one; while it runs or under ctrl+o, Claude Code's own drawing, each call with its own **TOOL** |
 
-Click the `›` beside any label to open the **Details** pane. A tool call has
+Click `details ›` beside any label to open the **Details** pane. A tool call has
 **Summary** (tool, status, input, result, duration), **Payload** (its input as
 JSON), **Result** (its output) and **Timing** (step, start, finish,
 duration). A prompt or reply has **Summary** (its length, and a prompt's

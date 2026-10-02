@@ -183,7 +183,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
       const tree = await $.ui.render({ surface, component: 'AssistantMessage', requestId: 'r1', viewport, props: { text: 'Retry now uses **backoff**.', isFirstOfReply: true } });
       expect(texts(tree)[0]).toMatchObject({ text: 'CLAUDE', color: DEFAULTS.claudeColor });
       expect(walk(tree).find((element) => element.type === 'Markdown')?.props?.['text']).toBe('Retry now uses **backoff**.');
-      expect(walk(tree).some((element) => element.type === 'Button' && element.props?.['label'] === '›')).toBe(true);
+      expect(walk(tree).some((element) => element.type === 'Button' && element.props?.['label'] === 'details ›')).toBe(true);
     });
 
     test('ending in a question become CLAUDE ? in the question colour', async ($) => {
@@ -270,11 +270,11 @@ for (const surface of ['terminal', 'desktop'] as const) {
       expect(walk(tree).filter((element) => element.type === 'Text').map(allText)).toContain('Bash npm run tset → failed');
     });
 
-    test('a live or expanded group keeps the engine\'s drawing under TOOL', async ($, on) => {
+    test('a live or expanded group is the engine\'s drawing alone: its calls carry their own TOOL', async ($, on) => {
       on('ui.render', { component: 'ToolGroup' }, () => ({ type: 'engine', ref: 0 }));
       for (const over of [{ isActive: true }, { isExpanded: true }]) {
         const tree = await $.ui.render({ surface, component: 'ToolGroup', requestId: 'g3', viewport, props: group([call()], over) as never });
-        expect(texts(tree).map((t) => t.text)).toEqual(['TOOL']);
+        expect(texts(tree)).toEqual([]);
         expect(walk(tree).filter((element) => element.type === 'engine')).toHaveLength(1);
       }
     });
@@ -363,7 +363,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
 
     test('shows a hint until a row is opened', async ($) => {
       const tree = await $.ui.render({ surface, component: 'Pane', requestId: PANE, viewport, props: paneProps });
-      expect(texts(tree).map((t) => t.text)).toEqual(['Click › beside a row to see it here.']);
+      expect(texts(tree).map((t) => t.text)).toEqual(['Click details › beside a row to see it here.']);
     });
   });
 }

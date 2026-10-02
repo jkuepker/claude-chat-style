@@ -1,6 +1,6 @@
 {
   "name": "log-transcript-theme",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "private": true,
   "description": "Claude Code plugin: a log look for the transcript with a docked details pane.",
   "license": "MIT",

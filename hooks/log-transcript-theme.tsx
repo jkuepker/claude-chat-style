@@ -6,8 +6,8 @@ import type { CallTiming, Detail, DetailView } from '../types';
 /**
  * A log look for the transcript: every row opens with a coloured role label,
  * YOU for your prompts, CLAUDE for replies (CLAUDE ? when the reply asks you
- * something), TOOL for tool calls, which fold to one line once done. The ›
- * beside a label opens a pane docked beside the transcript with the row's
+ * something), TOOL for tool calls, which fold to one line once done. The
+ * "details ›" button beside a label opens a pane docked beside the transcript with the row's
  * tabs: Summary, Payload, Result and Timing for a tool call; Summary, Preview
  * and Raw for a message.
  */
@@ -35,8 +35,9 @@ const DIM_COLOR = '#828996';
 
 /** Cells the label column takes: the widest label, `CLAUDE ?`, and a space. */
 const LABEL_WIDTH = 9;
-/** Cells the › opener takes after the label. */
-const OPENER_WIDTH = 2;
+/** The button beside a label that opens the row's detail, and the cells it takes. */
+export const OPENER_LABEL = 'details ›';
+const OPENER_WIDTH = 11;
 
 /** The detail pane's id: letters, digits, `_` and `-` only. */
 export const PANE = 'log-transcript-theme-detail';
@@ -290,7 +291,7 @@ export function holdsEngine(node: unknown): boolean {
   return element.type === 'engine' || holdsEngine(element.children ?? element.props?.children);
 }
 
-/** The › that opens a row's detail in the pane. */
+/** The "details ›" button that opens a row's detail in the pane. */
 function opener(
   $: EngineInterface,
   ui: Elements['terminal'] | Elements['desktop'] | Elements['mobile'] | Elements['vscode'],
@@ -301,7 +302,7 @@ function opener(
   return (
     <Button
       key={`open-${requestId}`}
-      label="›"
+      label={OPENER_LABEL}
       plain
       dimColor
       onPress={async () => {
@@ -314,7 +315,7 @@ function opener(
 }
 
 /**
- * One log row: the coloured label, the › that opens its detail, then the
+ * One log row: the coloured label, the button that opens its detail, then the
  * row's own drawing, which wraps in the room left.
  */
 function row(
@@ -467,9 +468,9 @@ export const register: Register = (on, options) => {
   });
 
   // A folded group (`Ran 2 shell commands`): TOOL and one line per call, as a
-  // single call draws once done, red when one failed. The engine's count line
-  // drops below the label column, so it stays only while the group is live or
-  // expanded (ctrl+o).
+  // single call draws once done, red when one failed. While the group runs or
+  // is expanded (ctrl+o) the engine draws each call as a row of its own, and
+  // those rows carry their own TOOL label, so the group adds none.
   on('ui.render', { component: 'ToolGroup' }, async ($, e, next) => {
     const ui = $.ui.resolve(e);
     const { calls, isActive, isExpanded } = e.props;
@@ -495,7 +496,7 @@ export const register: Register = (on, options) => {
           };
     const failed = calls.some((call) => call.isErrored || call.isInterrupted);
     const color = failed ? ERROR_COLOR : style.toolColor;
-    if (isActive || isExpanded) return row($, ui, e.requestId, 'TOOL', color, open, await next(e));
+    if (isActive || isExpanded) return next(e);
     return row(
       $,
       ui,
@@ -520,7 +521,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button, Markdown, Code } = $.ui.resolve(e);
     const shown = await read($, detail);
-    if (!shown) return <Text color={DIM_COLOR}>Click › beside a row to see it here.</Text>;
+    if (!shown) return <Text color={DIM_COLOR}>Click details › beside a row to see it here.</Text>;
     const name = await read($, tab);
     const view = shown.views.find((one) => one.name === name) ?? shown.views[0];
     const color =

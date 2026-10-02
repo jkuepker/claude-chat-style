@@ -1,7 +1,7 @@
 {
   "name": "log-transcript-theme",
-  "version": "0.6.7",
-  "description": "A log look for the transcript: YOU, CLAUDE and TOOL labels on every row, tool calls folded to one line, and a › beside each label that opens the row's details in a docked pane.",
+  "version": "0.6.8",
+  "description": "A log look for the transcript: YOU, CLAUDE and TOOL labels on every row, tool calls folded to one line, and a details › button beside each label that opens the row's details in a docked pane.",
   "license": "MIT",
   "userConfig": {
     "enabled": {
