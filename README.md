@@ -1,40 +1,48 @@
-# claude-chat-style
+# log-transcript-theme
 
-A Claude Code plugin that turns the terminal transcript into a chat: you on
-the right, Claude on the left, a colour per side.
+Formerly `claude-chat-style`: Claude Code 2.1.288 reserves plugin names that
+start with `claude-`. GitHub redirects the old repository URL here.
 
-![Claude Code in a terminal with this plugin: prompts as right-aligned blue bubbles, replies in orange boxes, a question tagged "awaiting your answer", a table in its own box](docs/demo.gif)
+A Claude Code plugin that draws the transcript as a log: every row opens
+with a coloured role label, tool calls fold to one line, and the `›` beside a
+label opens that row's details in a pane docked beside the transcript.
 
-| Message | Drawn as |
+![Claude Code in a terminal with this plugin: YOU, TOOL, CLAUDE and CLAUDE ? labels, tool calls folded to one line each, a failed call marked in red](docs/demo.gif)
+
+| Row | Drawn as |
 |---|---|
-| Your prompt | `>` in a right-aligned blue bubble, sized to the text |
-| Claude's reply | an orange box opened by an **orange ●**, sized to the text; the markdown renders as usual |
-| Claude's question | the same orange box with an "awaiting your answer" tag |
-| A reply with a code block or table | the same orange box, sized to its widest line |
-| Tool calls and output | left to Claude Code: green ⏺ (red on error), diffs, progress, dim `⎿` lines |
+| Your prompt | **YOU** (blue), then the text |
+| Claude's reply | **CLAUDE** (magenta), then the markdown as usual |
+| Claude's question | **CLAUDE ?** (yellow): the reply's last paragraph outside code ends with `?` |
+| A multiple-choice question (AskUserQuestion) | **CLAUDE ?** over Claude Code's own dialog, and over its answered card |
+| A finished tool call | **TOOL** (orange) and one line: `Bash npm test → 14 passed`, `Edit src/fetch.ts → +12 −3` |
+| A running or failed tool call | **TOOL** (orange, red on failure) over Claude Code's own drawing |
+| A folded group (`Ran 2 shell commands`) | **TOOL** and one line per call, `→ failed` in red for a failed one; Claude Code's own drawing while it runs or under ctrl+o |
 
-Every bubble is as wide as its widest drawn line (markdown markup left out, a
-table as the terminal draws it). Claude's boxes and your bubbles are both up to
-95% of the width; Claude's start 1 column in, so the gutters mirror. So the two sides never line up, and the gutters look even in the desktop
-app's terminal pane, which pads its right side more than its left. A reply
-counts as a question when its last paragraph outside code ends with `?`.
+Click the `›` beside any label to open the **Details** pane. A tool call has
+**Summary** (tool, status, input, result, duration), **Payload** (its input as
+JSON), **Result** (its output) and **Timing** (step, start, finish,
+duration). A prompt or reply has **Summary** (its length), **Preview** (the
+text rendered) and **Raw** (the source). The colours are Ultra Atom One
+Dark's.
 
-Only prompts you type get the bubble; task notifications, teammates and other
-senders keep Claude Code's own row.
+Only prompts you type get the YOU label; task notifications, teammates and
+other senders keep Claude Code's own row.
 
-**Terminal only.** Checked on 2026-09-26 with Claude Code 2.1.281: the
-desktop app's Code tab draws prompts (right-aligned bubbles) and replies with
-its own renderer and does not ask plugins to draw those rows, so nothing
-changes there, although the same drawing validates on the `desktop` surface in
-`claude plugin test`. The plugin is harmless to leave installed for desktop.
+Works in the terminal and in the desktop app's Code tab, checked by eye on
+2026-10-02 with Claude Code 2.1.286 to 2.1.288. In the desktop app the pane
+docks to the right of the transcript; in the terminal it docks in fullscreen
+mode at 110 columns or more, and otherwise opens above the prompt. The desktop
+app draws some rows itself (the text inside its own groups of tool calls), and
+those keep its look.
 
 It uses Claude Code's early-access function hooks (`ui.render`), which may
 change between Claude Code releases; `types/claude-code.d.ts` was written by
-Claude Code 2.1.274.
+Claude Code 2.1.286.
 
 ## Install
 
-You need Claude Code in a terminal (tested with 2.1.281 to 2.1.283).
+You need Claude Code 2.1.283 or later, in a terminal or the desktop app.
 
 - **Required before installing:**
 
@@ -53,8 +61,8 @@ You need Claude Code in a terminal (tested with 2.1.281 to 2.1.283).
   1. Run the following commands:
 
      ```sh
-     claude plugin marketplace add jkuepker/claude-chat-style
-     claude plugin install claude-chat-style@claude-chat-style
+     claude plugin marketplace add jkuepker/log-transcript-theme
+     claude plugin install log-transcript-theme@log-transcript-theme
      ```
 
   2. Start a new `claude` session in a terminal. A session that is already
@@ -69,10 +77,10 @@ You need Claude Code in a terminal (tested with 2.1.281 to 2.1.283).
   1. Run the following commands (`./` or a full path; a bare `.` is rejected):
 
      ```sh
-     git clone https://github.com/jkuepker/claude-chat-style.git
-     cd claude-chat-style
+     git clone https://github.com/jkuepker/log-transcript-theme.git
+     cd log-transcript-theme
      claude plugin marketplace add ./
-     claude plugin install claude-chat-style@claude-chat-style
+     claude plugin install log-transcript-theme@log-transcript-theme
      ```
 
   2. Start a new `claude` session in a terminal.
@@ -82,9 +90,9 @@ You need Claude Code in a terminal (tested with 2.1.281 to 2.1.283).
 - **To update**
 
   ```sh
-  cd /path/to/claude-chat-style && git pull   # Option 2 only
-  claude plugin marketplace update claude-chat-style
-  claude plugin update claude-chat-style@claude-chat-style
+  cd /path/to/log-transcript-theme && git pull   # Option 2 only
+  claude plugin marketplace update log-transcript-theme
+  claude plugin update log-transcript-theme@log-transcript-theme
   ```
 
   Then restart `claude`.
@@ -94,8 +102,8 @@ You need Claude Code in a terminal (tested with 2.1.281 to 2.1.283).
 - **To uninstall**
 
   ```sh
-  claude plugin uninstall claude-chat-style@claude-chat-style
-  claude plugin marketplace remove claude-chat-style
+  claude plugin uninstall log-transcript-theme@log-transcript-theme
+  claude plugin marketplace remove log-transcript-theme
   ```
 
   <br>
@@ -103,32 +111,31 @@ You need Claude Code in a terminal (tested with 2.1.281 to 2.1.283).
 - **To try it for one session without installing:**
 
   ```sh
-  git clone https://github.com/jkuepker/claude-chat-style.git
-  cd claude-chat-style
+  git clone https://github.com/jkuepker/log-transcript-theme.git
+  cd log-transcript-theme
   claude --plugin-dir ./
   ```
 
 ## Options
 
-`/plugin configure claude-chat-style@claude-chat-style`, or
+`/plugin configure log-transcript-theme@log-transcript-theme`, or
 `--config KEY=VALUE` at install:
 
 | Option | Default | |
 |---|---|---|
 | `enabled` | `true` | off leaves Claude Code's own drawing |
-| `replyColor` | `#D97757` | Claude's dot, box and question tag: a hex colour or a theme key |
-| `promptColor` | `#5BA4D8` | the border of your prompt bubbles |
-| `replyWidthPercent` | `95` | widest Claude's prose boxes get, in percent of the width |
-| `codeWidthPercent` | `95` | widest replies with code blocks or tables get |
-| `promptWidthPercent` | `95` | widest your prompt bubbles get |
-| `replyIndent` | `1` | columns before Claude's boxes; 0 suits a terminal with even padding |
+| `youColor` | `#4280FE` | the YOU label: a hex colour or a theme key |
+| `claudeColor` | `#DE77FF` | the CLAUDE label |
+| `questionColor` | `#FEDC71` | the CLAUDE ? label |
+| `toolColor` | `#FF995A` | the TOOL label |
 
 ## Make your own style
 
-The colours and widths are settings (above), so a different palette needs no
-code. For a different look altogether, fork the repository: the whole drawing
-is `hooks/chat-style.tsx`, two `ui.render` hooks (one for your prompts, one
-for Claude's text) that return a tree of `Box` and `Text` elements, and
+The colours are settings (above), so a different palette needs no code. For
+a different look altogether, fork the repository: the whole drawing is
+`hooks/log-transcript-theme.tsx`, one `ui.render` hook per row kind (your prompts,
+Claude's text, tool calls and results, the pane) that returns a tree of
+`Box`, `Text` and `Button` elements, and
 `types/claude-code.d.ts` lists every element and prop a hook can use. Give
 your fork its own `name` in `.claude-plugin/plugin.json` and
 `.claude-plugin/marketplace.json` so it can be installed beside this one, and
@@ -143,12 +150,16 @@ MIT (see `LICENSE`): use, change and share it, including as your own style.
 `docs/demo.gif` is a real Claude Code session, recorded with
 
 ```sh
-demo/record-gif.sh docs/demo.gif /path/to/a/trusted/folder
+claude plugin disable log-transcript-theme@log-transcript-theme   # if installed
+demo/record-gif.sh docs/demo.gif /path/to/a/trusted/git/repository
+claude plugin enable log-transcript-theme@log-transcript-theme
 ```
 
+An installed copy would draw every row a second time, hence the disable.
+
 It runs `claude --plugin-dir .` in a private tmux server, shows it in a new
-Ghostty window, types three prompts (a plain answer, a question back, a
-table), records that window with ScreenCaptureKit (`demo/wincap.swift`, so
+Ghostty window, types three prompts (two shell commands, a failing one and a question back,
+an answer; only `ls`, `git log` and `npm run` may run unasked), records that window with ScreenCaptureKit (`demo/wincap.swift`, so
 other windows may cover it) and encodes a 960 px, 15 fps GIF. Needs tmux,
 ffmpeg, Ghostty and Screen Recording permission. Two things it works around:
 Claude Code drops to 256 colours when it sees tmux, so the session hides tmux

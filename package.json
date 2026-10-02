@@ -1,8 +1,8 @@
 {
-  "name": "claude-chat-style",
-  "version": "0.4.0",
+  "name": "log-transcript-theme",
+  "version": "0.6.2",
   "private": true,
-  "description": "Claude Code plugin: the chat look from the fast-decmo-compaction demo.",
+  "description": "Claude Code plugin: a log look for the transcript with a docked details pane.",
   "license": "MIT",
   "type": "module",
   "scripts": {

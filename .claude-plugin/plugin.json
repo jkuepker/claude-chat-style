@@ -1,50 +1,39 @@
 {
-  "name": "claude-chat-style",
-  "version": "0.4.0",
-  "description": "A chat look for the terminal: your prompts as right-aligned blue bubbles, Claude's replies in orange boxes with an orange dot, questions tagged, tool rows left native.",
+  "name": "log-transcript-theme",
+  "version": "0.6.2",
+  "description": "A log look for the transcript: YOU, CLAUDE and TOOL labels on every row, tool calls folded to one line, and a › beside each label that opens the row's details in a docked pane.",
   "license": "MIT",
   "userConfig": {
     "enabled": {
       "type": "boolean",
       "title": "Enabled",
-      "description": "Draw prompts and replies in this style. Off leaves Claude Code's own drawing.",
+      "description": "Draw the transcript in this style. Off leaves Claude Code's own drawing.",
       "default": true
     },
-    "replyColor": {
+    "youColor": {
       "type": "string",
-      "title": "Reply colour",
-      "description": "Colour of Claude's reply dot, box and question tag: a hex colour or a theme key.",
-      "default": "#D97757"
+      "title": "YOU colour",
+      "description": "Colour of the YOU label on your prompts: a hex colour or a theme key.",
+      "default": "#4280FE"
     },
-    "promptColor": {
+    "claudeColor": {
       "type": "string",
-      "title": "Prompt colour",
-      "description": "Border colour of your prompts' bubbles: a hex colour or a theme key.",
-      "default": "#5BA4D8"
+      "title": "CLAUDE colour",
+      "description": "Colour of the CLAUDE label on Claude's replies.",
+      "default": "#DE77FF"
     },
-    "replyWidthPercent": {
-      "type": "number",
-      "title": "Reply width",
-      "description": "Widest Claude's prose boxes get, in percent of the terminal width (20 to 100); the same as promptWidthPercent mirrors your bubbles.",
-      "default": 95
+    "questionColor": {
+      "type": "string",
+      "title": "Question colour",
+      "description": "Colour of the CLAUDE ? label on a reply that asks you something.",
+      "default": "#FEDC71"
     },
-    "codeWidthPercent": {
-      "type": "number",
-      "title": "Code and table width",
-      "description": "Widest replies with code blocks or tables get, in percent of the terminal width (20 to 100).",
-      "default": 95
-    },
-    "promptWidthPercent": {
-      "type": "number",
-      "title": "Prompt width",
-      "description": "Widest your prompt bubbles get, in percent of the terminal width (20 to 100).",
-      "default": 95
-    },
-    "replyIndent": {
-      "type": "number",
-      "title": "Reply indent",
-      "description": "Columns between the terminal's left edge and Claude's boxes (0 to 20). 1 balances the desktop app's terminal pane, which pads its right side about one column more than its left; 0 suits a terminal with even padding.",
-      "default": 1
+    "toolColor": {
+      "type": "string",
+      "title": "TOOL colour",
+      "description": "Colour of the TOOL label on tool calls.",
+      "default": "#FF995A"
     }
-  }
+  },
+  "types": "./types/index.d.ts"
 }

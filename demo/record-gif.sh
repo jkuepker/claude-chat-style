@@ -5,11 +5,14 @@
 #
 # macOS only. Needs tmux, ffmpeg, Ghostty and Screen Recording permission for
 # the app running the script. Starts `claude --plugin-dir <this repo>` in tmux
-# (in `workdir`, a folder Claude Code already trusts, default the current
-# one), shows it in a new Ghostty window, types three prompts into it (a plain
-# answer, a question back, a table), records that window with ScreenCaptureKit
+# (in `workdir`, a git repository Claude Code already trusts, default the
+# current folder), shows it in a new Ghostty window, types three prompts into
+# it (two shell commands, a failing one and a question back, an answer),
+# records that window with ScreenCaptureKit
 # (demo/wincap.swift; other windows may cover it) and encodes a looping GIF.
-# About 30 seconds. The replies come from the model, so each run differs.
+# About 40 seconds. The replies come from the model, so each run differs.
+# Only `ls`, `git log` and `npm run` may run without asking. Disable an
+# installed copy of the plugin first, or both copies draw the rows.
 #
 # DEMO_MODEL (default haiku), GIF_WIDTH (960), GIF_FPS (15), GIF_COLORS (128)
 # and GIF_KEEP_WORK=1 (keep the raw recording) tune it.
@@ -22,14 +25,14 @@ model=${DEMO_MODEL:-haiku}
 width=${GIF_WIDTH:-960}
 fps=${GIF_FPS:-15}
 colors=${GIF_COLORS:-128}
-session=chat-style-demo
-work=$(mktemp -d "${TMPDIR:-/tmp}/chat-style-gif.XXXXXX")
+session=log-theme-demo
+work=$(mktemp -d "${TMPDIR:-/tmp}/log-theme-gif.XXXXXX")
 [[ "${GIF_KEEP_WORK:-}" == 1 ]] && echo "work dir: $work" || trap 'rm -rf "$work"' EXIT
 
 prompts=(
-  "In one sentence, what does a terminal emulator actually do?"
-  "Write a two-line poem about a tidy terminal, then ask me if I want another."
-  "Show a small markdown table of three terminal emulators and one standout feature each."
+  "Run ls, then git log --oneline -3. Reply in one sentence."
+  "Run npm run tset (a typo, it will fail), then ask me in one line whether to run npm test instead."
+  "No thanks, that's all."
 )
 
 # A tmux server of its own: no personal config, no status bar, full colour.
@@ -46,7 +49,7 @@ wait_for() { # pattern, seconds
   for _ in $(seq 1 $(($2 * 5))); do tmux_ capture-pane -t "$session" -p | grep -q -- "$1" && return 0; sleep 0.2; done
   echo "timed out waiting for: $1" >&2; return 1
 }
-# True once a "… for Ns · done" line follows the bubble that starts with the prompt.
+# True once a "… for Ns · done" line follows the row that starts with the prompt.
 answered() {
   tmux_ capture-pane -t "$session" -p -S -500 | python3 -c '
 import re, sys
@@ -67,7 +70,7 @@ tmux_ kill-server 2>/dev/null || true
 env -i HOME="$HOME" USER="$USER" LOGNAME="${LOGNAME:-$USER}" PATH="$PATH" SHELL="${SHELL:-/bin/zsh}" \
   LANG="${LANG:-en_US.UTF-8}" TMPDIR="$(getconf DARWIN_USER_TEMP_DIR)" \
   tmux -L "$session" -f "$work/tmux.conf" new-session -d -s "$session" -x 108 -y 30 \
-  "cd '$workdir' && env -u TMUX -u TMUX_PANE TERM=xterm-256color COLORTERM=truecolor claude --plugin-dir '$repo' --model '$model'"
+  "cd '$workdir' && env -u TMUX -u TMUX_PANE TERM=xterm-256color COLORTERM=truecolor claude --plugin-dir '$repo' --model '$model' --allowedTools 'Bash(ls:*)' 'Bash(git log:*)' 'Bash(npm run:*)'"
 wait_for '❯' 30
 
 # A Ghostty window of its own, attached to the session, in the demo's colours.
