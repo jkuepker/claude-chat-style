@@ -1,0 +1,16 @@
+{
+  "name": "claude-chat-style",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Claude Code plugin: the chat look from the fast-decmo-compaction demo.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "claude plugin test .",
+    "validate": "claude plugin validate .claude-plugin/plugin.json"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

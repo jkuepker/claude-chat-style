@@ -1,0 +1,13 @@
+{
+  "name": "claude-chat-style",
+  "owner": { "name": "josef" },
+  "plugins": [
+    {
+      "name": "claude-chat-style",
+      "source": "./",
+      "description": "Terminal chat look: right-aligned blue prompt bubbles, orange reply boxes, tagged questions.",
+      "version": "0.4.0",
+      "license": "MIT"
+    }
+  ]
+}
