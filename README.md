@@ -11,8 +11,8 @@ label opens that row's details in a pane docked beside the transcript.
 
 | Row | Drawn as |
 |---|---|
-| Your prompt | **YOU** (blue), then the text |
-| Your prompt with attachments | the same, then a line per attachment: `▣ image 1 · header.png`, or for a paste, which has no file name, `▣ image 2 · PNG` |
+| Your prompt | **YOU** (blue), then the text as typed; a fenced block (```` ``` ```` or `~~~`) is drawn as code, with its language |
+| Your prompt with attachments | the same, then a line per attachment: `▣ image 1 · header.png`, or for a paste, which has no file name, `▣ image 2 · PNG`. The picture itself is not drawn: a plugin is not given its bytes |
 | Claude's reply | **CLAUDE** (magenta), then the markdown as usual |
 | Claude's question | **CLAUDE ?** (yellow): the reply's last paragraph outside code ends with `?` |
 | A multiple-choice question (AskUserQuestion) | **CLAUDE ?** over its answered card in the terminal, and a **CLAUDE ?** line above Claude Code's own dialog while it waits for you |
@@ -39,7 +39,8 @@ app draws some rows itself, and those keep its look: the text inside its own
 groups of tool calls, a message that is only images, and an answered
 multiple-choice question, which it shows as its own receipt card without asking
 the plugin (a dismissed or timed-out question is a plain tool row and keeps its
-label).
+label). Code blocks in your prompts were checked by eye in the desktop app on
+2026-10-03 (0.6.10); in the terminal they are checked by tests only.
 
 It uses Claude Code's early-access function hooks (`ui.render`), which may
 change between Claude Code releases; `types/claude-code.d.ts` was written by
