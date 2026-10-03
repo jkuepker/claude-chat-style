@@ -15,7 +15,7 @@ label opens that row's details in a pane docked beside the transcript.
 | Your prompt with attachments | the same, then a line per attachment: `▣ image 1 · header.png`, or for a paste, which has no file name, `▣ image 2 · PNG` |
 | Claude's reply | **CLAUDE** (magenta), then the markdown as usual |
 | Claude's question | **CLAUDE ?** (yellow): the reply's last paragraph outside code ends with `?` |
-| A multiple-choice question (AskUserQuestion) | **CLAUDE ?** over Claude Code's own dialog while it waits for you, and over its answered card in the terminal |
+| A multiple-choice question (AskUserQuestion) | **CLAUDE ?** over its answered card in the terminal, and a **CLAUDE ?** line above Claude Code's own dialog while it waits for you (checked by tests, not yet by eye) |
 | A finished tool call | **TOOL** (orange) and one line: `Bash npm test → 14 passed`, `Edit src/fetch.ts → +12 −3` |
 | A running or failed tool call | **TOOL** (orange, red on failure) over Claude Code's own drawing |
 | A folded group (`Ran 2 shell commands`) | **TOOL** and one line per call, `→ failed` in red for a failed one; while it runs or under ctrl+o, Claude Code's own drawing, each call with its own **TOOL** |
