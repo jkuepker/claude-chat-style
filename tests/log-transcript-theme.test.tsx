@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing';
 
-import { attachmentLabel, attachmentsSummary, chatStyle, DEFAULTS, duration, firstLine, formatName, holdsEngine, inputSummary, lastLine, isQuestion, outputSummary, outputText, PANE, questionText, textDetail, toolDetail } from '../hooks/log-transcript-theme.tsx';
+import { attachmentLabel, attachmentsSummary, chatStyle, DEFAULTS, duration, firstLine, formatName, holdsEngine, inputSummary, lastLine, isQuestion, promptParts, outputSummary, outputText, PANE, questionText, textDetail, toolDetail } from '../hooks/log-transcript-theme.tsx';
 
 type Node = { type?: string; props?: Record<string, unknown>; children?: unknown[] };
 
@@ -204,6 +204,14 @@ for (const surface of ['terminal', 'desktop'] as const) {
         expect(texts(tree).map((t) => t.text)).toEqual(['YOU', 'Add jitter to the backoff.']);
         expect(texts(tree)[0]?.color).toBe(DEFAULTS.youColor);
       }
+    });
+
+    test('draw fenced code blocks as Code, the text around them as Text', async ($) => {
+      const text = 'Parse this:\n\n```json\n{ "a": 1 }\n```\nThanks.';
+      const tree = await $.ui.render({ surface, component: 'UserMessage', requestId: 'u-code', viewport, props: { text, origin: { kind: 'composer' }, isExpanded: false } });
+      expect(texts(tree).map((t) => t.text)).toEqual(['YOU', 'Parse this:', 'Thanks.']);
+      const code = walk(tree).find((element) => element.type === 'Code');
+      expect(code?.props).toMatchObject({ source: '{ "a": 1 }', language: 'json' });
     });
 
     test('from anyone else keep the engine\'s own row', async ($, on) => {
@@ -465,5 +473,17 @@ describe('prompts with attachments', () => {
     await $.prompt.submit({ origin: { kind: 'composer' }, wait: false, text: '', attachments: [{ type: 'image', mediaType: 'image/png' }, { type: 'image', mediaType: 'image/jpeg' }] });
     const tree = await $.ui.render({ surface: 'terminal', component: 'UserMessage', requestId: 'a2', viewport, props: { text: '', origin: { kind: 'composer' }, isExpanded: false } });
     expect(texts(tree).map((t) => t.text)).toEqual(['YOU', '▣ image 1 · PNG', '▣ image 2 · JPEG']);
+  });
+});
+
+describe('promptParts', () => {
+  test('keeps a prompt without fences whole', () => {
+    expect(promptParts('plain\n\ntext')).toEqual([{ text: 'plain\n\ntext' }]);
+  });
+  test('splits fences out, with or without a language', () => {
+    expect(promptParts('a\n~~~\nx\n~~~\n```py\ny\n```')).toEqual([{ text: 'a' }, { code: 'x' }, { code: 'y', language: 'py' }]);
+  });
+  test('leaves an unclosed fence as text', () => {
+    expect(promptParts('```\nopen')).toEqual([{ text: '```\nopen' }]);
   });
 });

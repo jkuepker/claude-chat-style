@@ -68,6 +68,23 @@ function withoutCode(markdown: string): string {
   return markdown.replace(/^\s*(```|~~~)[\s\S]*?^\s*\1[^\n]*$/gm, '');
 }
 
+/** A prompt split into plain text and fenced code blocks, in order. */
+export function promptParts(text: string): Array<{ text: string } | { code: string; language?: string }> {
+  const parts: Array<{ text: string } | { code: string; language?: string }> = [];
+  const fence = /^[ \t]*(```|~~~)[ \t]*([^\s`]*)[^\n]*\n([\s\S]*?)^[ \t]*\1[^\n]*$/gm;
+  let at = 0;
+  for (const match of text.matchAll(fence)) {
+    const before = text.slice(at, match.index).replace(/^\n+|\n+$/g, '');
+    if (before.trim()) parts.push({ text: before });
+    const code = match[3]!.replace(/\n$/, '');
+    parts.push(match[2] ? { code, language: match[2] } : { code });
+    at = match.index! + match[0].length;
+  }
+  const rest = text.slice(at).replace(/^\n+|\n+$/g, '');
+  if (rest.trim() || !parts.length) parts.push({ text: parts.length ? rest : text });
+  return parts;
+}
+
 /** True when the last paragraph outside code ends with a question mark. */
 export function isQuestion(markdown: string): boolean {
   const paragraphs = withoutCode(markdown)
@@ -409,7 +426,12 @@ export const register: Register = (on, options) => {
     const chips = attached.map((attachment, i) => (
       <ui.Text key={String(i)} color={style.youColor}>{`▣ ${attachmentLabel(attachment, i + 1)}`}</ui.Text>
     ));
-    return row($, ui, e.requestId, 'YOU', style.youColor, () => textDetail('YOU', 'prompt', text, attached), text ? [<ui.Text>{text}</ui.Text>, ...chips] : chips);
+    const parts = text
+      ? promptParts(text).map((part, i) =>
+          'code' in part ? <ui.Code key={`p${i}`} source={part.code} language={part.language} /> : <ui.Text key={`p${i}`}>{part.text}</ui.Text>,
+        )
+      : [];
+    return row($, ui, e.requestId, 'YOU', style.youColor, () => textDetail('YOU', 'prompt', text, attached), [...parts, ...chips]);
   });
 
   // The live question dialog: CLAUDE ? on a line of its own above the engine's
