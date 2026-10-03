@@ -6,7 +6,7 @@
       "name": "log-transcript-theme",
       "source": "./",
       "description": "Log look for the transcript: YOU, CLAUDE and TOOL labels, one-line tool calls, a docked details pane.",
-      "version": "0.6.8",
+      "version": "0.6.9",
       "license": "MIT"
     }
   ]

@@ -296,7 +296,7 @@ function opener(
   $: EngineInterface,
   ui: Elements['terminal'] | Elements['desktop'] | Elements['mobile'] | Elements['vscode'],
   requestId: string,
-  open: () => Detail,
+  open: () => Detail | Promise<Detail>,
 ) {
   const { Button } = ui;
   return (
@@ -306,7 +306,8 @@ function opener(
       plain
       dimColor
       onPress={async () => {
-        await update($, detail, () => open());
+        const shown = await open();
+        await update($, detail, () => shown);
         await update($, tab, () => 'Summary');
         await $.ui.open({ id: PANE, title: PANE_TITLE });
       }}
@@ -324,7 +325,7 @@ function row(
   requestId: string,
   label: string,
   color: string,
-  open: () => Detail,
+  open: () => Detail | Promise<Detail>,
   body: RenderElement | RenderElement[],
 ) {
   const { Box, Text } = ui;
@@ -413,7 +414,8 @@ export const register: Register = (on, options) => {
 
   // The live question dialog: CLAUDE ? on a line of its own above the engine's
   // dialog. The engine refuses a sized Box around the dialog, so the label
-  // cannot take its usual column beside it.
+  // cannot take its usual column beside it. This is the only question site the
+  // desktop app asks a plugin to draw; its answered card is the app's own.
   on('ui.render', { component: 'AskUserQuestion' }, async ($, e, next) => {
     const ui = $.ui.resolve(e);
     const { Box, Text } = ui;
@@ -432,12 +434,16 @@ export const register: Register = (on, options) => {
   // A tool call: TOOL and one line, `Bash npm test → 14 passed`, once done.
   // While it runs, or when it failed, the engine's own drawing stays under the label.
   // An AskUserQuestion call is a question to you: CLAUDE ? over the engine's card.
+  // The desktop app draws an answered question as its own receipt card and never
+  // asks a plugin to draw it, so there the label shows only on the pending dialog
+  // (the AskUserQuestion hook above) and on a dismissed or timed-out question.
+  // The call's timing is read when its details › is pressed, not here: reading
+  // it while drawing would redraw every tool row on every tool call.
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
     const ui = $.ui.resolve(e);
     const { tool, input, output, isRunning, isErrored, isInterrupted } = e.props;
     const status = isRunning ? 'running' : isInterrupted ? 'interrupted' : isErrored ? 'failed' : 'done';
-    const timed = (await read($, timing))[e.props.tool_use_id];
-    const open = () => toolDetail(tool, input, output, status, timed);
+    const open = async () => toolDetail(tool, input, output, status, (await read($, timing))[e.props.tool_use_id]);
     if (tool === ASK_TOOL && !isErrored && !isInterrupted) {
       return row($, ui, e.requestId, 'CLAUDE ?', style.questionColor, open, await next(e));
     }
@@ -517,6 +523,17 @@ export const register: Register = (on, options) => {
     );
   });
 
+  // The pane's tab Buttons, reused across its redraws. A redraw that builds new
+  // Buttons gets new press handles, and a click on the tree the surface still
+  // shows (the pane redraws when it takes focus, on the first click into it)
+  // then carries a handle the engine has dropped and does nothing. One Button
+  // per surface, tab and look keeps its handle. Its press acts through the `$`
+  // of the drawing that built it, which is safe: `$` is the same frozen object
+  // at every invocation. That a re-returned Button keeps its host handle is
+  // engine behaviour (checked on 2.1.286 and 2.1.288), not a documented promise;
+  // the "keeps its press handle across redraws" test fails if that changes.
+  const tabButtons = new Map<string, RenderElement>();
+
   // The pane: the row's label and title, a button per tab, and the open tab.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button, Markdown, Code } = $.ui.resolve(e);
@@ -557,9 +574,17 @@ export const register: Register = (on, options) => {
           <Text color={DIM_COLOR}>{` · ${shown.title}`}</Text>
         </Text>
         <Box flexDirection="row" gap={1}>
-          {shown.views.map((one) => (
-            <Button key={`tab-${one.name}`} label={one.name} variant={one === view ? 'primary' : 'secondary'} onPress={() => void update($, tab, () => one.name)} />
-          ))}
+          {shown.views.map((one) => {
+            const variant = one === view ? 'primary' : 'secondary';
+            const id = `${e.surface}:${one.name}:${variant}`;
+            let button = tabButtons.get(id);
+            if (!button) {
+              const name = one.name;
+              button = <Button key={`tab-${name}`} label={name} variant={variant} onPress={() => void update($, tab, () => name)} />;
+              tabButtons.set(id, button);
+            }
+            return button;
+          })}
         </Box>
         {body(view)}
       </Box>

@@ -15,7 +15,7 @@ label opens that row's details in a pane docked beside the transcript.
 | Your prompt with attachments | the same, then a line per attachment: `▣ image 1 · header.png`, or for a paste, which has no file name, `▣ image 2 · PNG` |
 | Claude's reply | **CLAUDE** (magenta), then the markdown as usual |
 | Claude's question | **CLAUDE ?** (yellow): the reply's last paragraph outside code ends with `?` |
-| A multiple-choice question (AskUserQuestion) | **CLAUDE ?** over Claude Code's own dialog, and over its answered card |
+| A multiple-choice question (AskUserQuestion) | **CLAUDE ?** over Claude Code's own dialog while it waits for you, and over its answered card in the terminal |
 | A finished tool call | **TOOL** (orange) and one line: `Bash npm test → 14 passed`, `Edit src/fetch.ts → +12 −3` |
 | A running or failed tool call | **TOOL** (orange, red on failure) over Claude Code's own drawing |
 | A folded group (`Ran 2 shell commands`) | **TOOL** and one line per call, `→ failed` in red for a failed one; while it runs or under ctrl+o, Claude Code's own drawing, each call with its own **TOOL** |
@@ -35,8 +35,11 @@ Works in the terminal and in the desktop app's Code tab, checked by eye on
 2026-10-02 with Claude Code 2.1.286 to 2.1.288. In the desktop app the pane
 docks to the right of the transcript; in the terminal it docks in fullscreen
 mode at 110 columns or more, and otherwise opens above the prompt. The desktop
-app draws some rows itself (the text inside its own groups of tool calls), and
-those keep its look.
+app draws some rows itself, and those keep its look: the text inside its own
+groups of tool calls, a message that is only images, and an answered
+multiple-choice question, which it shows as its own receipt card without asking
+the plugin (a dismissed or timed-out question is a plain tool row and keeps its
+label).
 
 It uses Claude Code's early-access function hooks (`ui.render`), which may
 change between Claude Code releases; `types/claude-code.d.ts` was written by

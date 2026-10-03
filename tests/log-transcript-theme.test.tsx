@@ -361,6 +361,64 @@ for (const surface of ['terminal', 'desktop'] as const) {
       expect(texts(tree).some((t) => t.text.startsWith('Not timed'))).toBe(true);
     });
 
+    test('a tab Button keeps its press handle across redraws, so a click on the shown tree still lands', async ($, on) => {
+      on('ui.open', () => ({ value: { isPlaced: true as const } }));
+      await $.ui.render({ surface, component: 'ToolUse', requestId: 'th', viewport, props: toolProps({ tool_use_id: 'th' }) });
+      await $.ui.press({ plugin: PLUGIN, key: 'open-th', requestId: 'th', surface });
+      const draw = (props: typeof paneProps) => $.ui.render({ surface, component: 'Pane', requestId: PANE, viewport, props });
+      const handleOf = (tree: unknown, key: string) =>
+        (walk(tree).find((element) => element.type === 'Button' && element.props?.['key'] === key) as { press?: { handle?: unknown } } | undefined)?.press?.handle;
+      const first = await draw(paneProps);
+      const handle = handleOf(first, 'tab-Payload');
+      expect(handle).toBeDefined();
+      // The pane redraws when it takes focus (the first click into it) and when another row opens.
+      const focused = await draw({ ...paneProps, isFocused: true });
+      expect(handleOf(focused, 'tab-Payload')).toBe(handle);
+      await $.ui.render({ surface, component: 'ToolUse', requestId: 'th2', viewport, props: toolProps({ tool_use_id: 'th2', input: { command: 'ls' } }) });
+      await $.ui.press({ plugin: PLUGIN, key: 'open-th2', requestId: 'th2', surface });
+      const other = await draw(paneProps);
+      expect(handleOf(other, 'tab-Payload')).toBe(handle);
+      // A press after those redraws still switches the tab.
+      await $.ui.press({ plugin: PLUGIN, key: 'tab-Payload', requestId: PANE, surface });
+      const after = await draw(paneProps);
+      expect(String(walk(after).find((element) => element.type === 'Code')?.props?.['source'])).toContain('"command": "ls"');
+    });
+
+    test('tabs that leave the drawing and come back still take a press, across a group detail too', async ($, on) => {
+      on('ui.open', () => ({ value: { isPlaced: true as const } }));
+      const draw = () => $.ui.render({ surface, component: 'Pane', requestId: PANE, viewport, props: paneProps });
+      const primary = (tree: unknown) =>
+        walk(tree).filter((element) => element.type === 'Button' && element.props?.['variant'] === 'primary').map((element) => element.props?.['label']);
+      await $.ui.render({ surface, component: 'ToolUse', requestId: 'rt', viewport, props: toolProps({ tool_use_id: 'rt' }) });
+      await $.ui.press({ plugin: PLUGIN, key: 'open-rt', requestId: 'rt', surface });
+      await draw();
+      for (const name of ['Payload', 'Summary', 'Payload', 'Result', 'Summary', 'Timing']) {
+        await $.ui.press({ plugin: PLUGIN, key: `tab-${name}`, requestId: PANE, surface });
+        expect(primary(await draw())).toEqual([name]);
+      }
+      // A group of two calls has no Timing tab; the tool's detail, opened again after it, does.
+      const read = (path: string) => ({ tool: 'Read', input: { file_path: path }, output: '1\tx', isRunning: false, isErrored: false, isInterrupted: false });
+      const calls = [read('/a'), read('/b')];
+      await $.ui.render({ surface, component: 'ToolGroup', requestId: 'rg', viewport, props: { calls, isActive: false, isExpanded: false } as never });
+      await $.ui.press({ plugin: PLUGIN, key: 'open-rg', requestId: 'rg', surface });
+      expect(walk(await draw()).filter((element) => element.type === 'Button').map((element) => element.props?.['label'])).toEqual(['Summary', 'Payload', 'Result']);
+      await $.ui.press({ plugin: PLUGIN, key: 'open-rt', requestId: 'rt', surface });
+      await draw();
+      await $.ui.press({ plugin: PLUGIN, key: 'tab-Timing', requestId: PANE, surface });
+      expect(primary(await draw())).toEqual(['Timing']);
+    });
+
+    test('another call\'s tool.call leaves a done row and its details › handle alone', async ($, on) => {
+      on('tool.call', () => ({ result: { stdout: 'ok' } }) as never);
+      const mounted = await $.ui.mount({ plugin: PLUGIN, surface, component: 'ToolUse', requestId: 'r5', viewport, props: toolProps({ tool_use_id: 'r5' }) as never });
+      const opener = async () =>
+        (walk(await mounted.drawn()).find((element) => element.type === 'Button' && element.props?.['key'] === 'open-r5') as { press?: { handle?: unknown } } | undefined)?.press?.handle;
+      const before = await opener();
+      expect(before).toBeDefined();
+      await $.tool.call({ tool: 'Bash', command: 'echo hi', tool_use_id: 'other' } as never);
+      expect(await opener()).toBe(before);
+    });
+
     test('shows a hint until a row is opened', async ($) => {
       const tree = await $.ui.render({ surface, component: 'Pane', requestId: PANE, viewport, props: paneProps });
       expect(texts(tree).map((t) => t.text)).toEqual(['Click details › beside a row to see it here.']);
@@ -369,6 +427,18 @@ for (const surface of ['terminal', 'desktop'] as const) {
 }
 
 describe('tool timing', () => {
+  test('a row drawn before its call finished still opens with the timing, read when details › is pressed', async ($, on) => {
+    on('tool.call', () => ({ result: { stdout: 'ok' } }) as never);
+    on('ui.open', () => ({ value: { isPlaced: true as const } }));
+    await $.ui.render({ surface: 'desktop', component: 'ToolUse', requestId: 'tm2', props: toolProps({ tool_use_id: 'tm2' }) });
+    await $.tool.call({ tool: 'Bash', command: 'echo hi', tool_use_id: 'tm2' } as never);
+    await $.ui.press({ plugin: PLUGIN, key: 'open-tm2', requestId: 'tm2', surface: 'desktop' });
+    await $.ui.render({ surface: 'desktop', component: 'Pane', requestId: PANE, props: paneProps });
+    await $.ui.press({ plugin: PLUGIN, key: 'tab-Timing', requestId: PANE, surface: 'desktop' });
+    const tree = await $.ui.render({ surface: 'desktop', component: 'Pane', requestId: PANE, props: paneProps });
+    expect(texts(tree).map((t) => t.text)).toEqual(expect.arrayContaining(['Step', '1', 'Finished']));
+  });
+
   test('a tool.call is timed by its tool_use_id and the pane shows its step', async ($, on) => {
     on('tool.call', () => ({ result: { stdout: 'ok' } }) as never);
     on('ui.open', () => ({ value: { isPlaced: true as const } }));
